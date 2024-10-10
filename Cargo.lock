@@ -2314,7 +2314,7 @@ dependencies = [
 
 [[package]]
 name = "kona-derive"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "alloc-no-stdlib",
  "alloy-consensus",
@@ -2349,7 +2349,7 @@ dependencies = [
 
 [[package]]
 name = "kona-executor"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2405,7 +2405,7 @@ dependencies = [
 
 [[package]]
 name = "kona-mpt"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "alloy-consensus",
  "alloy-primitives",
@@ -2444,7 +2444,7 @@ dependencies = [
 
 [[package]]
 name = "kona-primitives"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
