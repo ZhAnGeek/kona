@@ -81,7 +81,10 @@ where
         let mut retries = 0;
         while preimage.is_none() && self.last_hint.is_some() {
             if retries >= MAX_RETRIES {
-                tracing::error!(target: "fetcher", "Max retries exceeded.");
+                tracing::error!(target: "fetcher", "Max retries exceeded. Key: {key}");
+                let hint = self.last_hint.as_ref().expect("Cannot be None");
+                let (hint_type, hint_data) = util::parse_hint(hint)?;
+                tracing::error!(target: "fetcher", "Fetching hint: {hint_type} {hint_data}");
                 anyhow::bail!("Max retries exceeded.");
             }
 
