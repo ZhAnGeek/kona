@@ -162,16 +162,17 @@ where
         self.update_accounts(bundle)?;
 
         // Recompute the root hash of the trie.
-        self.root_node.blind();
+        // self.root_node.blind();
 
-        debug!(
-            target: "client_executor",
-            "Recomputed state root: {commitment:?}",
-            commitment = self.root_node.blinded_commitment()
-        );
+        // debug!(
+        //     target: "client_executor",
+        //     "Recomputed state root: {commitment:?}",
+        //     commitment = self.root_node.blinded_commitment()
+        // );
 
         // Extract the new state root from the root node.
-        self.root_node.blinded_commitment().ok_or(TrieDBError::RootNotBlinded)
+        // self.root_node.blinded_commitment().ok_or(TrieDBError::RootNotBlinded)
+        self.root_node.get_hash().ok_or(TrieDBError::RootNotBlinded)
     }
 
     /// Returns a reference to the current parent block header of the trie DB.

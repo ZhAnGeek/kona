@@ -144,6 +144,19 @@ impl TrieNode {
         }
     }
 
+    /// Blinds the [TrieNode] if its encoded length is longer than an encoded [B256] string in
+    /// length. Alternatively, if the [TrieNode] is a [TrieNode::Blinded] node already, it
+    /// is left as-is.
+    pub fn get_hash(&mut self) -> Option<B256> {
+        if self.length() >= B256::ZERO.len() && !matches!(self, TrieNode::Blinded { .. }) {
+            let mut rlp_buf = Vec::with_capacity(self.length());
+            self.encode_in_place(&mut rlp_buf);
+            Some(keccak256(rlp_buf))
+        } else {
+            None
+        }
+    }
+
     /// Unblinds the [TrieNode] if it is a [TrieNode::Blinded] node.
     pub fn unblind<F: TrieProvider>(&mut self, fetcher: &F) -> TrieNodeResult<()> {
         if let TrieNode::Blinded { commitment } = self {
@@ -152,6 +165,7 @@ impl TrieNode {
                 // reach out to the fetcher.
                 *self = TrieNode::Empty;
             } else {
+                println!("commitment is {:?}", *commitment);
                 let rlp = fetcher
                     .trie_node_preimage(*commitment)
                     .map_err(|e| TrieNodeError::Provider(e.to_string()))?;
@@ -178,8 +192,10 @@ impl TrieNode {
         path: &Nibbles,
         fetcher: &F,
     ) -> TrieNodeResult<Option<&'a mut Bytes>> {
+        println!("path released {:?}", path);
         match self {
             TrieNode::Branch { ref mut stack } => {
+                println!("path branch {:?}", path);
                 let branch_nibble = path[0] as usize;
                 stack
                     .get_mut(branch_nibble)
@@ -187,9 +203,11 @@ impl TrieNode {
                     .unwrap_or(Ok(None))
             }
             TrieNode::Leaf { prefix, value } => {
+                println!("path leaf {:?}", path);
                 Ok((path.as_slice() == prefix.as_slice()).then_some(value))
             }
             TrieNode::Extension { prefix, node } => {
+                println!("path release ext unblind {:?}", path);
                 if path.slice(..prefix.len()).as_slice() == prefix.as_slice() {
                     // Follow extension branch
                     node.unblind(fetcher)?;
@@ -199,6 +217,7 @@ impl TrieNode {
                 }
             }
             TrieNode::Blinded { .. } => {
+                println!("path release unblind {:?}", path);
                 self.unblind(fetcher)?;
                 self.open(path, fetcher)
             }

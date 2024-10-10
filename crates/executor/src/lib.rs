@@ -3,14 +3,14 @@
 #![deny(unused_must_use, rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
-#![cfg_attr(not(test), no_std)]
+// #![cfg_attr(not(test), no_std)]
 
 extern crate alloc;
 
 use alloc::vec::Vec;
 use alloy_consensus::{Header, Sealable, EMPTY_OMMER_ROOT_HASH, EMPTY_ROOT_HASH};
 use alloy_eips::eip2718::{Decodable2718, Encodable2718};
-use alloy_primitives::{address, keccak256, Address, Bytes, TxKind, B256, U256};
+use alloy_primitives::{address, hex::ToHexExt, keccak256, Address, Bytes, TxKind, B256, U256};
 use kona_mpt::{ordered_trie_with_encoder, TrieDB, TrieDBError, TrieHinter, TrieProvider};
 use op_alloy_consensus::{OpReceiptEnvelope, OpTxEnvelope};
 use op_alloy_genesis::RollupConfig;
@@ -23,7 +23,7 @@ use revm::{
     },
     Evm,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, error};
 
 mod errors;
 pub use errors::{ExecutorError, ExecutorResult};
@@ -359,6 +359,7 @@ where
         const L2_TO_L1_MESSAGE_PASSER_ADDRESS: Address =
             address!("4200000000000000000000000000000000000016");
 
+        println!("get storage root");
         // Fetch the L2 to L1 message passer account from the cache or underlying trie.
         let storage_root = match self.trie_db.storage_roots().get(&L2_TO_L1_MESSAGE_PASSER_ADDRESS)
         {
@@ -372,15 +373,17 @@ where
                     .storage_root
             }
         };
+        println!("get storage root done!");
 
         let parent_header = self.trie_db.parent_block_header();
 
-        info!(
-            target: "client_executor",
-            "Computing output root | Version: {version} | State root: {state_root} | Storage root: {storage_root} | Block hash: {hash}",
-            version = OUTPUT_ROOT_VERSION,
-            state_root = self.trie_db.parent_block_header().state_root,
-            hash = parent_header.seal(),
+        println!(
+            "Computing output root | Version: {} | State root: {} | 
+            Storage root: {} | Block hash: {}",
+            OUTPUT_ROOT_VERSION,
+            self.trie_db.parent_block_header().state_root.encode_hex(),
+            storage_root.encode_hex(),
+            parent_header.seal().encode_hex(),
         );
 
         // Construct the raw output.

@@ -101,6 +101,8 @@ impl<B: BeaconClient, S: SlotDerivation> OnlineBlobProvider<B, S> {
         // Calculate the slot for the given timestamp.
         let slot = S::slot(genesis, interval, block_ref.timestamp)?;
 
+        println!("slot is this {}", slot);
+
         // Fetch blob sidecars for the slot using the given blob hashes.
         let sidecars = self.fetch_sidecars(slot, blob_hashes).await?;
 
