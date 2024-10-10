@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3](https://github.com/ZhAnGeek/kona/compare/kona-executor-v0.0.2...kona-executor-v0.0.3) - 2024-10-10
+
+### Other
+
+- Bumps Dependency Versions ([#520](https://github.com/ZhAnGeek/kona/pull/520))
+- *(primitives)* rm RawTransaction ([#505](https://github.com/ZhAnGeek/kona/pull/505))
+
 ## [0.0.2](https://github.com/anton-rs/kona/compare/kona-executor-v0.0.1...kona-executor-v0.0.2) - 2024-09-04
 
 ### Added
