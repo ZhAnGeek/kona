@@ -82,7 +82,7 @@ where
         let mut retries = 0;
         while preimage.is_none() && self.last_hint.is_some() {
             if retries >= MAX_RETRIES {
-                tracing::error!(target: "fetcher", "Max retries exceeded.");
+                tracing::error!(target: "fetcher", "Max retries exceeded. {key}");
                 anyhow::bail!("Max retries exceeded.");
             }
 
@@ -101,7 +101,7 @@ where
     /// Fetch the preimage for the given hint and insert it into the key-value store.
     async fn prefetch(&self, hint: &str) -> Result<()> {
         let (hint_type, hint_data) = util::parse_hint(hint)?;
-        trace!(target: "fetcher", "Fetching hint: {hint_type} {hint_data}");
+        tracing::error!(target: "fetcher", "Max retries exceeded. {hint_type}, {hint_data}");
 
         match hint_type {
             HintType::L1BlockHeader => {
