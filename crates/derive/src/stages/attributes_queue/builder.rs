@@ -7,12 +7,13 @@ use crate::{
     traits::{ChainProvider, L2ChainProvider},
 };
 use alloc::{boxed::Box, fmt::Debug, string::ToString, sync::Arc, vec, vec::Vec};
+use alloy_consensus::{Transaction, TxEnvelope};
 use alloy_eips::{eip2718::Encodable2718, BlockNumHash};
-use alloy_primitives::Bytes;
+use alloy_primitives::{Bytes, FixedBytes};
 use alloy_rlp::Encodable;
 use alloy_rpc_types_engine::PayloadAttributes;
 use async_trait::async_trait;
-use op_alloy_consensus::Hardforks;
+use op_alloy_consensus::{Hardforks, OpTxEnvelope};
 use op_alloy_genesis::RollupConfig;
 use op_alloy_protocol::{L1BlockInfoTx, L2BlockInfo};
 use op_alloy_rpc_types_engine::OptimismPayloadAttributes;
@@ -58,6 +59,92 @@ where
     /// Create a new [StatefulAttributesBuilder] with the given epoch.
     pub fn new(rcfg: Arc<RollupConfig>, sys_cfg_fetcher: L2P, receipts: L1P) -> Self {
         Self { rollup_cfg: rcfg, config_fetcher: sys_cfg_fetcher, receipts_fetcher: receipts }
+    }
+
+    fn base_fee_by_transactions(&mut self, transactions: &Vec<TxEnvelope>) -> u128 {
+        let mut non_zero_txs_cnt: u128 = 0;
+        let mut non_zero_txs_sum: u128 = 0;
+        let default_base_fee: u128 = 3000000000;
+    
+        for tx in transactions {
+            match tx.gas_price() {
+                Some(gas_price) => {
+                    non_zero_txs_cnt += 1;
+                    non_zero_txs_sum += gas_price;
+                }
+                None => ()
+            }
+        }
+    
+        if non_zero_txs_cnt == 0 {
+            return default_base_fee.clone();
+        }
+    
+        non_zero_txs_sum / non_zero_txs_cnt
+    }
+    
+    
+    fn final_gas_price(&mut self, all_median_gas_price: &mut Vec<u128>, percentile: usize) -> u128 {
+        // Sort the gas prices
+        all_median_gas_price.sort();
+    
+        // Calculate the index based on the percentile
+        let index = (all_median_gas_price.len().saturating_sub(1) * percentile) / 100;
+    
+        // Return the final gas price
+        all_median_gas_price[index]
+    }
+    
+    fn median_gas_price(&mut self, transactions: Vec<TxEnvelope>, percentile: usize) -> u128 {
+        let mut non_zero_txs_gas_price: Vec<u128> = Vec::new();
+        let default_base_fee: u128 = 3000000000;
+    
+        // Collect non-zero gas prices
+        for tx in transactions {
+            let gas_price = tx.gas_price();
+            match gas_price {
+                Some(actual) => {
+                    if actual > 0 {
+                        non_zero_txs_gas_price.push(actual);
+                    }
+                }
+                None => ()
+            }
+    
+        }
+    
+        // Sort the gas prices
+        non_zero_txs_gas_price.sort();
+    
+        // Calculate the median gas price
+        let median_gas_price = if !non_zero_txs_gas_price.is_empty() {
+            non_zero_txs_gas_price[(non_zero_txs_gas_price.len() - 1) * percentile / 100]
+        } else {
+            default_base_fee // Assuming DEFAULT_BASE_FEE is defined as a u64
+        };
+    
+        median_gas_price
+    }
+    
+    pub async fn snow_l1_gas_price(
+        &mut self,
+        hash: FixedBytes<32>,
+    ) -> PipelineResult<u64> {
+        let count_block_size = 21;
+    
+        let mut all_median_gas_price: Vec<u128> = Vec::new();
+        let mut block_hash = hash;
+        while all_median_gas_price.len() < count_block_size {
+            let (l1_info, txns) = self.receipts_fetcher.block_info_and_transactions_by_hash(block_hash)
+                .await
+                .map_err(|e| PipelineErrorKind::Temporary(PipelineError::MissingL1Data))?;
+            let median_gas_price = self.median_gas_price(txns, 50);
+            all_median_gas_price.push(median_gas_price);
+            block_hash = l1_info.parent_hash;
+        }
+    
+        let latest_l1_gas_price = self.final_gas_price(all_median_gas_price.as_mut(), 50); // Example percentile
+        Ok(latest_l1_gas_price as u64)
     }
 }
 
@@ -161,7 +248,7 @@ where
         }
 
         // Build and encode the L1 info transaction for the current payload.
-        let (_, l1_info_tx_envelope) = L1BlockInfoTx::try_new_with_deposit_tx(
+        let (mut block_info, mut l1_info_tx_envelope) = L1BlockInfoTx::try_new_with_deposit_tx(
             &self.rollup_cfg,
             &sys_config,
             sequence_number,
@@ -171,6 +258,22 @@ where
         .map_err(|e| {
             PipelineError::AttributesBuilder(BuilderError::Custom(e.to_string())).crit()
         })?;
+        block_info = match block_info {
+            L1BlockInfoTx::Bedrock(_) => block_info,
+            L1BlockInfoTx::Ecotone(mut ecotone_tx) => {
+                ecotone_tx.base_fee = self.snow_l1_gas_price(ecotone_tx.block_hash).await?;
+                println!("{}", ecotone_tx.base_fee);
+                L1BlockInfoTx::Ecotone(ecotone_tx)
+                // 7895590675
+            }
+        };
+        l1_info_tx_envelope = match l1_info_tx_envelope {
+            OpTxEnvelope::Deposit(mut deposit_tx) => {
+                deposit_tx.input = block_info.encode_calldata();
+                OpTxEnvelope::Deposit(deposit_tx)
+            }
+            _ => l1_info_tx_envelope
+        };
         let mut encoded_l1_info_tx = Vec::with_capacity(l1_info_tx_envelope.length());
         l1_info_tx_envelope.encode_2718(&mut encoded_l1_info_tx);
 
@@ -206,6 +309,7 @@ where
             )),
         })
     }
+    
 }
 
 #[cfg(test)]

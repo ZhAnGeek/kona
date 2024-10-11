@@ -18,7 +18,9 @@ alloy-consensus = { workspace = true, features = ["k256"] }
 op-alloy-consensus.workspace = true
 op-alloy-genesis.workspace = true
 op-alloy-rpc-types-engine.workspace = true
-revm = { workspace = true, features = ["optimism"] }
+revm = { workspace = true, features = ["optimism", "serde"] }
+serde.workspace = true
+serde_json.workspace = true
 
 # Workspace
 kona-mpt.workspace = true
@@ -26,8 +28,6 @@ kona-mpt.workspace = true
 [dev-dependencies]
 anyhow.workspace = true
 alloy-rlp.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 rand.workspace = true
 criterion.workspace = true
 pprof.workspace = true 

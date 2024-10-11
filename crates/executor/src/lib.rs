@@ -166,6 +166,7 @@ where
         } else {
             Vec::new()
         };
+        println!("real execution for transactions {}", transactions.len());
         for (transaction, raw_transaction) in transactions {
             // The sum of the transaction’s gas limit, Tg, and the gas utilized in this block prior,
             // must be no greater than the block’s gasLimit.
@@ -204,9 +205,13 @@ where
 
             // Execute the transaction.
             let tx_hash = keccak256(raw_transaction);
-            debug!(
-                target: "client_executor",
-                "Executing transaction: {tx_hash}",
+            println!(
+                "Executing transaction: {}",
+                tx_hash.encode_hex()
+            );
+            println!(
+                "Executing transaction: {}",
+                raw_transaction.encode_hex()
             );
             let result = evm.transact_commit().map_err(ExecutorError::ExecutionError)?;
             debug!(
@@ -255,6 +260,8 @@ where
 
         // Take the bundle state.
         let bundle = state.take_bundle();
+        let bundle_text = serde_json::to_string(&bundle).unwrap();
+        println!("bundle changed is {}", bundle_text);
 
         // Recompute the header roots.
         let state_root = state.database.state_root(&bundle)?;
