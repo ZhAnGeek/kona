@@ -110,7 +110,7 @@ impl<B: BeaconClient, S: SlotDerivation> OnlineBlobProvider<B, S> {
         let blob_hash_indicies = blob_hashes.iter().map(|b| b.index).collect::<Vec<_>>();
         let filtered = sidecars
             .into_iter()
-            .filter(|s| blob_hash_indicies.contains(&(s.inner.index as usize)))
+            .filter(|s| blob_hash_indicies.contains(&(s.index as usize)))
             .collect::<Vec<_>>();
 
         // Validate the correct number of blob sidecars were retrieved.
@@ -118,7 +118,7 @@ impl<B: BeaconClient, S: SlotDerivation> OnlineBlobProvider<B, S> {
             return Err(BlobProviderError::SidecarLengthMismatch(blob_hashes.len(), filtered.len()));
         }
 
-        Ok(filtered.into_iter().map(|s| s.inner).collect::<Vec<BlobSidecar>>())
+        Ok(filtered.into_iter().map(|s| s).collect::<Vec<BlobSidecar>>())
     }
 }
 
@@ -289,7 +289,7 @@ impl<B: BeaconClient, F: BlobSidecarProvider, S: SlotDerivation>
         let blob_hash_indicies = blob_hashes.iter().map(|b| b.index).collect::<Vec<_>>();
         let filtered = sidecars
             .into_iter()
-            .filter(|s| blob_hash_indicies.contains(&(s.inner.index as usize)))
+            .filter(|s| blob_hash_indicies.contains(&(s.index as usize)))
             .collect::<Vec<_>>();
 
         // Validate the correct number of blob sidecars were retrieved.
@@ -297,7 +297,7 @@ impl<B: BeaconClient, F: BlobSidecarProvider, S: SlotDerivation>
             return Err(BlobProviderError::SidecarLengthMismatch(blob_hashes.len(), filtered.len()));
         }
 
-        Ok(filtered.into_iter().map(|s| s.inner).collect::<Vec<BlobSidecar>>())
+        Ok(filtered.into_iter().map(|s| s).collect::<Vec<BlobSidecar>>())
     }
 }
 
@@ -688,7 +688,7 @@ mod tests {
             beacon_genesis: Some(APIGenesisResponse::new(10)),
             config_spec: Some(APIConfigResponse::new(12)),
             blob_sidecars: Some(APIGetBlobSidecarsResponse {
-                data: vec![APIBlobSidecar { inner: BlobSidecar::default(), ..Default::default() }],
+                data: vec![APIBlobSidecar { ..Default::default() }],
             }),
             ..Default::default()
         };
@@ -709,7 +709,7 @@ mod tests {
             beacon_genesis: Some(APIGenesisResponse::new(10)),
             config_spec: Some(APIConfigResponse::new(12)),
             blob_sidecars: Some(APIGetBlobSidecarsResponse {
-                data: vec![APIBlobSidecar { inner: BlobSidecar::default(), ..Default::default() }],
+                data: vec![APIBlobSidecar { ..Default::default() }],
             }),
             ..Default::default()
         };

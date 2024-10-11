@@ -119,18 +119,7 @@ impl BlobSidecar {
 }
 
 /// An API blob sidecar.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct APIBlobSidecar {
-    /// The inner blob sidecar.
-    #[cfg_attr(feature = "serde", serde(flatten))]
-    pub inner: BlobSidecar,
-    /// The signed block header.
-    #[cfg_attr(feature = "serde", serde(rename = "signed_block_header"))]
-    pub signed_block_header: SignedBeaconBlockHeader,
-    // The inclusion-proof of the blob-sidecar into the beacon-block is ignored,
-    // since we verify blobs by their versioned hashes against the execution-layer block instead.
-}
+pub type APIBlobSidecar = BlobSidecar;
 
 /// A signed beacon block header.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

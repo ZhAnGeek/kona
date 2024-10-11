@@ -120,6 +120,7 @@ impl BeaconClient for OnlineBeaconClient {
             &["beacon_client", "beacon_blob_side_cars"],
             timer
         );
+        println!("fetch raw response");
         let raw_response = match self
             .inner
             .get(format!("{}/{}/{}", self.base, SIDECARS_METHOD_PREFIX, slot))
@@ -136,6 +137,7 @@ impl BeaconClient for OnlineBeaconClient {
                 return Err(e);
             }
         };
+        println!("fetched raw response");
         let raw_response = match raw_response.json::<APIGetBlobSidecarsResponse>().await {
             Ok(response) => response,
             Err(e) => {
@@ -144,13 +146,14 @@ impl BeaconClient for OnlineBeaconClient {
                 return Err(e);
             }
         };
+        println!("decoded raw response");
 
         let mut sidecars = Vec::with_capacity(hashes.len());
 
         // Filter the sidecars by the hashes, in-order.
         hashes.iter().for_each(|hash| {
             if let Some(sidecar) =
-                raw_response.data.iter().find(|sidecar| sidecar.inner.index == hash.index as u64)
+                raw_response.data.iter().find(|sidecar| sidecar.index == hash.index as u64)
             {
                 sidecars.push(sidecar.clone());
             }
