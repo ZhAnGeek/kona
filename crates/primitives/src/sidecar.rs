@@ -49,7 +49,7 @@ pub struct BlobSidecar {
     /// The blob.
     pub blob: Blob,
     /// The index.
-    #[cfg_attr(feature = "serde", serde(deserialize_with = "parse_u64_string"))]
+    #[cfg_attr(feature = "serde", serde(rename="index"))]
     pub index: u64,
     /// The KZG commitment.
     #[cfg_attr(feature = "serde", serde(rename = "kzg_commitment"))]
